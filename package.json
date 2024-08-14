@@ -1,0 +1,24 @@
+﻿{
+    "name": "com.ni-games.scheduling",
+    "version": "1.0.0",
+    "displayName": "Ni Scheduling",
+    "description": "A set of task schedulers built into PlayerLoop and EditorLoop.",
+    "unity": "2022.2",
+    "documentationUrl": "",
+    "dependencies": {
+        "com.ni-games.essentials": "1.0.0",
+        "com.unity.collections": "1.5.1"
+    },
+    "optionalDependencies": {},
+    "keywords": [
+        "NiGames",
+        "NiPrefs",
+        "PlayerPrefs",
+        "Player Preferences"
+    ],
+    "author": {
+        "name": "HoSHIZA",
+        "email": "hoshiza78@gmail.com",
+        "url": "https://github.com/HoSHIZA"
+    }
+}

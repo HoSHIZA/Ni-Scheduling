@@ -1,0 +1,23 @@
+{
+    "name": "NiGames.Scheduling",
+    "rootNamespace": "",
+    "references": [
+        "GUID:afe90e86c50ef014096aaccc78292b4b",
+        "GUID:e0cd26848372d4e5c891c569017e11f1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.collections",
+            "expression": "",
+            "define": "ENABLE_UNITY_COLLECTIONS"
+        }
+    ],
+    "noEngineReferences": false
+}
