@@ -1,6 +1,6 @@
 # Ni-Scheduling
 
-Ni-Scheduling is a scheduling system that allows you to create tasks that will run at the right frequency depending on the 'IScheduler' you are using. Supports working with PlayerLoop and also works in the editor. Works with insecure code, so you need to understand what you are doing to use it properly.
+Ni-Scheduling is a scheduling system that allows you to create tasks that will run at the right frequency depending on the 'IScheduler' you are using. Supports working with PlayerLoop and also works in the editor. Works with unsafe code, so you need to understand what you are doing to use it properly.
 
 ## Requirements
 
