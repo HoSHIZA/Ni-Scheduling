@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using NiGames.Essentials.Unsafe;
 using NiGames.Scheduling.Helpers;
 using Unity.Collections;
@@ -32,6 +33,34 @@ namespace NiGames.Scheduling.Dispatchers
             time = Time;
             unscaledTime = Time;
             realtime = Time;
+        }
+        
+        public static void Update(double deltaTime)
+        {
+            Time += Math.Max(0, deltaTime);
+            
+            for (var i = 0; i < _tasks.Length; i++)
+            {
+                ref var task = ref _tasks.ElementAt(i);
+                
+                try
+                {
+                    task.UpdateFunction(task.TaskPtr, Time, Time, Time);
+                    
+                    if (task.IsCompletedFunction(task.TaskPtr))
+                    {
+                        NiUnsafe.Free(task.TaskPtr.ToPointer());
+                        _tasks.RemoveAtSwapBack(i);
+                    }
+                }
+                catch
+                {
+                    NiUnsafe.Free(task.TaskPtr.ToPointer());
+                    _tasks.RemoveAtSwapBack(i);
+                    
+                    throw;
+                }
+            }
         }
         
         [MethodImpl(256)]
