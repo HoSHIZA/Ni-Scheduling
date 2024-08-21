@@ -36,7 +36,11 @@ https://github.com/HoSHIZA/Ni-Scheduling.git
 
 ## Usage
 
+### Scheduled Tasks
+
 > ⚠️ Task must be an unmanaged struct because the scheduler does not work with managed code.
+
+> To use managed objects in unmanaged code, you can use the ManagerPtr struct.
 
 To use scheduler, you must define your task using the `IScheduledTask` interface.
 
@@ -46,49 +50,23 @@ Example implementation:
 public struct ExampleTask : IScheduledTask
 {
     public bool IsCompleted { get; private set; } // Set true to complete the task and remove from the scheduler.
-    public uint UpdaterId { get; private set; } // Unique identifier of the updater.
+    public int UpdaterId { get; private set; } // Unique identifier of the updater.
     public TimeKind TimeKind { get; private set; }
-    
-    private double _prevTime;
-    private double _prevUnscaledTime;
-    private double _prevRealtime;
 
     public void Init(ref TaskWrapper wrapper, TimeKind timeKind = TimeKind.Time)
     {
         UpdaterId = wrapper.UpdaterId;
         TimeKind = timeKind;
-        
-        wrapper.GetTimeValues(out _prevTime, out _prevUnscaledTime, out _prevRealtime);
     }
 
-    public void Update(double time, double unscaledTime, double realtime)
+    public void Update(in double time, in double unscaledTime, in double realtime, in double delta)
     {
-        var deltaTime = time - _prevTime;
-        var unscaledDeltaTime = unscaledTime - _prevUnscaledTime;
-        var realDeltaTime = realtime - _prevRealtime;
-        
-        // The final delta for the specified TimeKind.
-        var delta = TimeKind switch
-        {
-            TimeKind.Time => deltaTime,
-            TimeKind.UnscaledTime => unscaledDeltaTime,
-            _ => realDeltaTime
-        };
-        
         // Update Logic
-        
-        _prevTime = time;
-        _prevUnscaledTime = unscaledTime;
-        _prevRealtime = realtime;
     }
 
     public void Dispose()
     {
-        UpdaterId = default;
-
-        _prevTime = 0;
-        _prevUnscaledTime = 0;
-        _prevRealtime = 0;
+        UpdaterId = -1;
     }
 }
 ```
@@ -96,9 +74,34 @@ public struct ExampleTask : IScheduledTask
 Start the task we created with the selected scheduler.
 
 ```csharp
-IScheduler scheduler = Scheduler.UpdateUnscaledTime;
+IScheduler scheduler = Scheduler.UpdateUnscaled;
 
 var taskWrapper = scheduler.Schedule(new ExampleTask());
+```
+
+### NiInvoke
+
+Built-In set of universal tasks, with easy creation via builder.
+
+```csharp
+var builder = NiInvoke.Create(() => { /* Logic */ })
+    // With Prefix is used for configuration.
+    .WithDelay(1f) // Creates a delay before execution.
+    .WithDuration(4f) // Duration of performance. If less than zero, it is called all the time until canceled.
+    .WithInterval(1f) // Interval between calls.
+    .WithCancellationToken(cts.Token) // CancellationToken.
+    .WithScheduler(Scheduler.UpdateUnscaled) // Scheduler that specifies how and when to invoke.
+    // On Prefix is used for callbacks.
+    .OnStart(() => { /* Logic */ }) // Called during startup.
+    .OnStartDelayed(() => { /* Logic */ }) // Called during the actual startup, taking into account the delay.
+    .OnComplete(() => { /* Logic */ }) // Called upon completion or cancelation.
+    // Other methods not related to creation.
+    .Preserve(); // Does not invoke Dispose for the builder. Allows to reuse the builder.
+
+builder.InvokeOnce(); // Calls the update once. Only works with a delay.
+builder.InvokeRepeat(); // Calls a update on every update.
+
+builder.Dispose(); // Don't forget to call Dispose after use if the builder has called Preserve().
 ```
 
 ## License
