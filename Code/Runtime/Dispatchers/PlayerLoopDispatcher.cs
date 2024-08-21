@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using NiGames.Essentials;
 using NiGames.Essentials.Helpers;
 using NiGames.Essentials.Unsafe;
@@ -25,43 +26,77 @@ namespace NiGames.Scheduling.Dispatchers
     
     public static unsafe class PlayerLoopDispatcher
     {
-        public static class RunnerId
+        [SuppressMessage("ReSharper", "UnusedTypeParameter")]
+        [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
+        private static class Cache<T> where T : struct
         {
-            public static readonly uint Initialization = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint EarlyUpdate = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint FixedUpdate = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint PreUpdate = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint Update = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint PreLateUpdate = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint PostLateUpdate = SchedulerInternalHelper.GetNextRunnerId();
-            public static readonly uint TimeUpdate = SchedulerInternalHelper.GetNextRunnerId();
+            public static UnsafeList<TaskWrapper> Tasks;
+            public static PlayerLoopTiming Timing;
+            public static readonly int RunnerId = SchedulerInternalHelper.GetNextRunnerId();
+            
+            private static double _lastTime;
+            private static double _lastUnscaledTime;
+            private static double _lastRealtime;
+            
+            [MethodImpl(256)]
+            public static void Init(PlayerLoopTiming timing, int capacity, Allocator allocator = Allocator.Persistent)
+            {
+                Timing = timing;
+                Tasks = new UnsafeList<TaskWrapper>(capacity, allocator);
+            }
+            
+            [MethodImpl(256)]
+            public static void Update()
+            {
+                SchedulerTimeHelper.GetPlayerLoopTimeValues(Timing, out var time, out var unscaledTime, out var realtime);
+                
+                if (!Tasks.IsEmpty)
+                {
+                    var deltaTime = time - _lastTime;
+                    var deltaUnscaledTime = unscaledTime - _lastUnscaledTime;
+                    var deltaRealtime = realtime - _lastRealtime;
+                    
+                    SchedulerInternalHelper.ProcessTasks(ref Tasks, time, unscaledTime, realtime, deltaTime, deltaUnscaledTime, deltaRealtime);
+                }
+                
+                _lastTime = time;
+                _lastUnscaledTime = time;
+                _lastRealtime = time;
+            }
+            
+            [MethodImpl(256)]
+            public static void ClearTaskList()
+            {
+                SchedulerInternalHelper.ClearTaskList(ref Tasks);
+            }
         }
         
         private static bool _init;
         
         private static UnsafeList<TaskWrapper> _empty = new(0, Allocator.None);
-        private static UnsafeList<TaskWrapper> _initialization = new(2, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _earlyUpdate = new(8, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _fixedUpdate = new(16, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _preUpdate = new(8, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _update = new(16, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _preLateUpdate = new(8, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _postLateUpdate = new(8, Allocator.Persistent);
-        private static UnsafeList<TaskWrapper> _timeUpdate = new(4, Allocator.Persistent);
         
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void InitLoops() => InitHelper.DomainSafeInit(ref _init, () =>
         {
+            Cache<Initialization>.Init(PlayerLoopTiming.Initialization, 2);
+            Cache<EarlyUpdate>.Init(PlayerLoopTiming.EarlyUpdate, 2);
+            Cache<FixedUpdate>.Init(PlayerLoopTiming.FixedUpdate, 4);
+            Cache<PreUpdate>.Init(PlayerLoopTiming.PreUpdate, 2);
+            Cache<Update>.Init(PlayerLoopTiming.Update, 4);
+            Cache<PreLateUpdate>.Init(PlayerLoopTiming.PreLateUpdate, 2);
+            Cache<PostLateUpdate>.Init(PlayerLoopTiming.PostLateUpdate, 2);
+            Cache<TimeUpdate>.Init(PlayerLoopTiming.TimeUpdate, 2);
+            
             PlayerLoopHelper.ModifyLoop(systems =>
             {
-                systems.InsertLoop<Initialization, NiSchedulerInitialization>(static () => Update(PlayerLoopTiming.Initialization));
-                systems.InsertLoop<EarlyUpdate, NiSchedulerEarlyUpdate>(static () => Update(PlayerLoopTiming.EarlyUpdate));
-                systems.InsertLoop<FixedUpdate, NiSchedulerFixedUpdate>(static () => Update(PlayerLoopTiming.FixedUpdate));
-                systems.InsertLoop<PreUpdate, NiSchedulerPreUpdate>(static () => Update(PlayerLoopTiming.PreUpdate));
-                systems.InsertLoop<Update, NiSchedulerUpdate>(static () => Update(PlayerLoopTiming.Update));
-                systems.InsertLoop<PreLateUpdate, NiSchedulerPreLateUpdate>(static () => Update(PlayerLoopTiming.PreLateUpdate));
-                systems.InsertLoop<PostLateUpdate, NiSchedulerPostLateUpdate>(static () => Update(PlayerLoopTiming.PostLateUpdate));
-                systems.InsertLoop<TimeUpdate, NiSchedulerTimeUpdate>(static () => Update(PlayerLoopTiming.TimeUpdate));
+                systems.InsertLoop<Initialization, NiSchedulerInitialization>(static () => Cache<Initialization>.Update());
+                systems.InsertLoop<EarlyUpdate, NiSchedulerEarlyUpdate>(static () => Cache<EarlyUpdate>.Update());
+                systems.InsertLoop<FixedUpdate, NiSchedulerFixedUpdate>(static () => Cache<FixedUpdate>.Update());
+                systems.InsertLoop<PreUpdate, NiSchedulerPreUpdate>(static () => Cache<PreUpdate>.Update());
+                systems.InsertLoop<Update, NiSchedulerUpdate>(static () => Cache<Update>.Update());
+                systems.InsertLoop<PreLateUpdate, NiSchedulerPreLateUpdate>(static () => Cache<PreLateUpdate>.Update());
+                systems.InsertLoop<PostLateUpdate, NiSchedulerPostLateUpdate>(static () => Cache<PostLateUpdate>.Update());
+                systems.InsertLoop<TimeUpdate, NiSchedulerTimeUpdate>(static () => Cache<TimeUpdate>.Update());
             });
         });
         
@@ -69,23 +104,6 @@ namespace NiGames.Scheduling.Dispatchers
         private static void Init()
         {
             Clear();
-        }
-        
-        [MethodImpl(256)]
-        public static uint GetTaskRunnerId(PlayerLoopTiming timing)
-        {
-            return timing switch
-            {
-                PlayerLoopTiming.Initialization => RunnerId.Initialization,
-                PlayerLoopTiming.EarlyUpdate => RunnerId.EarlyUpdate,
-                PlayerLoopTiming.FixedUpdate => RunnerId.FixedUpdate,
-                PlayerLoopTiming.PreUpdate => RunnerId.PreUpdate,
-                PlayerLoopTiming.Update => RunnerId.Update,
-                PlayerLoopTiming.PreLateUpdate => RunnerId.PreLateUpdate,
-                PlayerLoopTiming.PostLateUpdate => RunnerId.PostLateUpdate,
-                PlayerLoopTiming.TimeUpdate => RunnerId.TimeUpdate,
-                _ => uint.MaxValue,
-            };
         }
         
         public static TaskWrapper Schedule<T>(ref T task, PlayerLoopScheduler scheduler)
@@ -106,64 +124,52 @@ namespace NiGames.Scheduling.Dispatchers
             return wrapper;
         }
         
-        private static void Update(PlayerLoopTiming timing)
+        [MethodImpl(256)]
+        public static void Clear()
         {
-            ref var tasks = ref GetTaskList(timing);
-            
-            SchedulerTimeHelper.GetPlayerLoopTimeValues(timing, out var time, out var unscaledTime, out var realtime);
-            
-            for (var i = 0; i < tasks.Length; i++)
-            {
-                ref var task = ref tasks.ElementAt(i);
-                
-                try
-                {
-                    task.UpdateFunction(task.TaskPtr, time, unscaledTime, realtime);
-                
-                    if (task.IsCompletedFunction(task.TaskPtr))
-                    {
-                        NiUnsafe.Free(task.TaskPtr.ToPointer());
-                        tasks.RemoveAtSwapBack(i);
-                    }
-                }
-                catch
-                {
-                    NiUnsafe.Free(task.TaskPtr.ToPointer());
-                    tasks.RemoveAtSwapBack(i);
-                }
-            }
+            Cache<Initialization>.ClearTaskList();
+            Cache<EarlyUpdate>.ClearTaskList();
+            Cache<FixedUpdate>.ClearTaskList();
+            Cache<PreUpdate>.ClearTaskList();
+            Cache<Update>.ClearTaskList();
+            Cache<PreLateUpdate>.ClearTaskList();
+            Cache<PostLateUpdate>.ClearTaskList();
+            Cache<TimeUpdate>.ClearTaskList();
         }
         
         [MethodImpl(256)]
-        internal static ref UnsafeList<TaskWrapper> GetTaskList(PlayerLoopTiming timing)
+        public static int GetTaskRunnerId(PlayerLoopTiming timing)
+        {
+            return timing switch
+            {
+                PlayerLoopTiming.Initialization => Cache<Initialization>.RunnerId,
+                PlayerLoopTiming.EarlyUpdate => Cache<EarlyUpdate>.RunnerId,
+                PlayerLoopTiming.FixedUpdate => Cache<FixedUpdate>.RunnerId,
+                PlayerLoopTiming.PreUpdate => Cache<PreUpdate>.RunnerId,
+                PlayerLoopTiming.Update => Cache<Update>.RunnerId,
+                PlayerLoopTiming.PreLateUpdate => Cache<PreLateUpdate>.RunnerId,
+                PlayerLoopTiming.PostLateUpdate => Cache<PostLateUpdate>.RunnerId,
+                PlayerLoopTiming.TimeUpdate => Cache<TimeUpdate>.RunnerId,
+                _ => -1
+            };
+        }
+        
+        [MethodImpl(256)]
+        public static ref UnsafeList<TaskWrapper> GetTaskList(PlayerLoopTiming timing)
         {
             switch (timing)
             {
-                case PlayerLoopTiming.Initialization:  return ref _initialization;
-                case PlayerLoopTiming.EarlyUpdate:     return ref _earlyUpdate;
-                case PlayerLoopTiming.FixedUpdate:     return ref _fixedUpdate;
-                case PlayerLoopTiming.PreUpdate:       return ref _preUpdate;
-                case PlayerLoopTiming.Update:          return ref _update;
-                case PlayerLoopTiming.PreLateUpdate:   return ref _preLateUpdate;
-                case PlayerLoopTiming.PostLateUpdate:  return ref _postLateUpdate;
-                case PlayerLoopTiming.TimeUpdate:      return ref _timeUpdate;
+                case PlayerLoopTiming.Initialization:  return ref Cache<Initialization>.Tasks;
+                case PlayerLoopTiming.EarlyUpdate:     return ref Cache<EarlyUpdate>.Tasks;
+                case PlayerLoopTiming.FixedUpdate:     return ref Cache<FixedUpdate>.Tasks;
+                case PlayerLoopTiming.PreUpdate:       return ref Cache<PreUpdate>.Tasks;
+                case PlayerLoopTiming.Update:          return ref Cache<Update>.Tasks;
+                case PlayerLoopTiming.PreLateUpdate:   return ref Cache<PreLateUpdate>.Tasks;
+                case PlayerLoopTiming.PostLateUpdate:  return ref Cache<PostLateUpdate>.Tasks;
+                case PlayerLoopTiming.TimeUpdate:      return ref Cache<TimeUpdate>.Tasks;
             }
 
             return ref _empty;
-        }
-
-        [MethodImpl(256)]
-        private static void Clear()
-        {
-            SchedulerInternalHelper.ClearTaskList(ref _empty, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _initialization, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _earlyUpdate, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _fixedUpdate, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _preUpdate, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _update, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _preLateUpdate, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _postLateUpdate, wrapper => wrapper.TaskPtr);
-            SchedulerInternalHelper.ClearTaskList(ref _timeUpdate, wrapper => wrapper.TaskPtr);
         }
     }
 }

@@ -13,14 +13,14 @@ namespace NiGames.Scheduling
         public static readonly IScheduler PostLateUpdate = new PlayerLoopScheduler(PlayerLoopTiming.PostLateUpdate, TimeKind.Time);
         public static readonly IScheduler TimeUpdate = new PlayerLoopScheduler(PlayerLoopTiming.TimeUpdate, TimeKind.Time);
         
-        public static readonly IScheduler InitializationUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.Initialization, TimeKind.UnscaledTime);
-        public static readonly IScheduler EarlyUpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.EarlyUpdate, TimeKind.UnscaledTime);
-        public static readonly IScheduler FixedUpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.FixedUpdate, TimeKind.UnscaledTime);
-        public static readonly IScheduler PreUpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.PreUpdate, TimeKind.UnscaledTime);
-        public static readonly IScheduler UpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.Update, TimeKind.UnscaledTime);
-        public static readonly IScheduler PreLateUpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.PreLateUpdate, TimeKind.UnscaledTime);
-        public static readonly IScheduler PostLateUpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.PostLateUpdate, TimeKind.UnscaledTime);
-        public static readonly IScheduler TimeUpdateUnscaledTime = new PlayerLoopScheduler(PlayerLoopTiming.TimeUpdate, TimeKind.UnscaledTime);
+        public static readonly IScheduler InitializationUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.Initialization, TimeKind.UnscaledTime);
+        public static readonly IScheduler EarlyUpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.EarlyUpdate, TimeKind.UnscaledTime);
+        public static readonly IScheduler FixedUpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.FixedUpdate, TimeKind.UnscaledTime);
+        public static readonly IScheduler PreUpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.PreUpdate, TimeKind.UnscaledTime);
+        public static readonly IScheduler UpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.Update, TimeKind.UnscaledTime);
+        public static readonly IScheduler PreLateUpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.PreLateUpdate, TimeKind.UnscaledTime);
+        public static readonly IScheduler PostLateUpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.PostLateUpdate, TimeKind.UnscaledTime);
+        public static readonly IScheduler TimeUpdateUnscaled = new PlayerLoopScheduler(PlayerLoopTiming.TimeUpdate, TimeKind.UnscaledTime);
         
         public static readonly IScheduler InitializationRealtime = new PlayerLoopScheduler(PlayerLoopTiming.Initialization, TimeKind.Realtime);
         public static readonly IScheduler EarlyUpdateRealtime = new PlayerLoopScheduler(PlayerLoopTiming.EarlyUpdate, TimeKind.Realtime);
@@ -34,12 +34,17 @@ namespace NiGames.Scheduling
         public static readonly IScheduler Manual = new ManualScheduler();
         
         /// <summary>
-        /// PlayerLoop <c>Update</c> Scheduler
+        /// Updates only in the editor.
+        /// </summary>
+        public static readonly IScheduler Editor = new EditorScheduler();
+        
+        /// <summary>
+        /// PlayerLoop <c>Update</c> Scheduler.
         /// </summary>
         public static IScheduler Default => Update;
         
         /// <summary>
-        /// Returns the appropriate <c>IScheduler</c> for the passed PlayerLoop update type and TimeKind.
+        /// Returns <c>IScheduler</c> for the specified PlayerLoop and TimeKind update timings.
         /// </summary>
         public static IScheduler GetScheduler(PlayerLoopTiming timing, TimeKind timeKind)
         {
@@ -48,52 +53,52 @@ namespace NiGames.Scheduling
                 PlayerLoopTiming.Initialization => timeKind switch
                 {
                     TimeKind.Time => Initialization,
-                    TimeKind.UnscaledTime => InitializationUnscaledTime,
+                    TimeKind.UnscaledTime => InitializationUnscaled,
                     _ => InitializationRealtime,
                 },
                 PlayerLoopTiming.EarlyUpdate => timeKind switch
                 {
                     TimeKind.Time => EarlyUpdate,
-                    TimeKind.UnscaledTime => EarlyUpdateUnscaledTime,
+                    TimeKind.UnscaledTime => EarlyUpdateUnscaled,
                     _ => EarlyUpdateRealtime,
                 },
                 PlayerLoopTiming.FixedUpdate => timeKind switch
                 {
                     TimeKind.Time => FixedUpdate,
-                    TimeKind.UnscaledTime => FixedUpdateUnscaledTime,
+                    TimeKind.UnscaledTime => FixedUpdateUnscaled,
                     _ => FixedUpdateRealtime,
                 },
                 PlayerLoopTiming.PreUpdate => timeKind switch
                 {
                     TimeKind.Time => PreUpdate,
-                    TimeKind.UnscaledTime => PreUpdateUnscaledTime,
+                    TimeKind.UnscaledTime => PreUpdateUnscaled,
                     _ => PreUpdateRealtime,
                 },
                 PlayerLoopTiming.Update => timeKind switch
                 {
                     TimeKind.Time => Update,
-                    TimeKind.UnscaledTime => UpdateUnscaledTime,
+                    TimeKind.UnscaledTime => UpdateUnscaled,
                     _ => UpdateRealtime,
                 },
                 PlayerLoopTiming.PreLateUpdate => timeKind switch
                 {
                     TimeKind.Time => PreLateUpdate,
-                    TimeKind.UnscaledTime => PreLateUpdateUnscaledTime,
+                    TimeKind.UnscaledTime => PreLateUpdateUnscaled,
                     _ => PreLateUpdateRealtime,
                 },
                 PlayerLoopTiming.PostLateUpdate => timeKind switch
                 {
                     TimeKind.Time => PostLateUpdate,
-                    TimeKind.UnscaledTime => PostLateUpdateUnscaledTime,
+                    TimeKind.UnscaledTime => PostLateUpdateUnscaled,
                     _ => PostLateUpdateRealtime,
                 },
                 PlayerLoopTiming.TimeUpdate => timeKind switch
                 {
                     TimeKind.Time => TimeUpdate,
-                    TimeKind.UnscaledTime => TimeUpdateUnscaledTime,
+                    TimeKind.UnscaledTime => TimeUpdateUnscaled,
                     _ => TimeUpdateRealtime,
                 },
-                _ => Manual
+                _ => Manual,
             };
         }
     }

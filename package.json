@@ -1,9 +1,9 @@
 ﻿{
     "name": "com.ni-games.scheduling",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "displayName": "Ni Scheduling",
     "description": "A set of task schedulers built into PlayerLoop and EditorLoop.",
-    "unity": "2022.2",
+    "unity": "2021.2",
     "documentationUrl": "",
     "dependencies": {
         "com.ni-games.essentials": "1.0.0",

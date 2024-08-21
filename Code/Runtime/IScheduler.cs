@@ -5,7 +5,7 @@ namespace NiGames.Scheduling
 {
     public interface IScheduler
     {
-        uint GetRunnerId();
+        int GetRunnerId();
         ref UnsafeList<TaskWrapper> GetTaskListRef();
         TaskWrapper Schedule<T>(T task) where T : unmanaged, IScheduledTask;
         (THandle Handle, TaskWrapper Wrapper) Schedule<T, THandle>(T task, Func<TaskWrapper, THandle> handleFactory) where T : unmanaged, IScheduledTask;

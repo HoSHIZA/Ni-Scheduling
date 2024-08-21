@@ -67,6 +67,14 @@ public struct ExampleTask : IScheduledTask
         var unscaledDeltaTime = unscaledTime - _prevUnscaledTime;
         var realDeltaTime = realtime - _prevRealtime;
         
+        // The final delta for the specified TimeKind.
+        var delta = TimeKind switch
+        {
+            TimeKind.Time => deltaTime,
+            TimeKind.UnscaledTime => unscaledDeltaTime,
+            _ => realDeltaTime
+        };
+        
         // Update Logic
         
         _prevTime = time;

@@ -5,19 +5,26 @@ using NiGames.Scheduling.Helpers;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
+using UnityEngine;
 
 namespace NiGames.Scheduling.Dispatchers
 {
     public static unsafe class EditorDispatcher
     {
-        public static readonly uint RunnerId = SchedulerInternalHelper.GetNextRunnerId();
+        public static readonly int RunnerId = SchedulerInternalHelper.GetNextRunnerId();
         
-        private static UnsafeList<TaskWrapper> _tasks = new(8, Allocator.Persistent);
+        private static UnsafeList<TaskWrapper> _tasks = new(4, Allocator.Persistent);
+        
+        private static double _lastTime;
+        private static double _lastRealtime;
         
         [InitializeOnLoadMethod]
         private static void Init()
         {
             EditorApplication.update += static () => Update();
+            
+            _lastTime = EditorApplication.timeSinceStartup;
+            _lastRealtime = Time.realtimeSinceStartupAsDouble;
         }
         
         public static TaskWrapper Schedule<T>(ref T task)
@@ -37,32 +44,20 @@ namespace NiGames.Scheduling.Dispatchers
         {
             SchedulerTimeHelper.GetEditorTimeValues(out var time, out var realtime);
             
-            for (var i = 0; i < _tasks.Length; i++)
+            if (!_tasks.IsEmpty)
             {
-                ref var task = ref _tasks.ElementAt(i);
+                var deltaTime = time - _lastTime;
+                var deltaRealtime = realtime - _lastRealtime;
                 
-                try
-                {
-                    task.UpdateFunction(task.TaskPtr, time, time, realtime);
-                    
-                    if (task.IsCompletedFunction(task.TaskPtr))
-                    {
-                        NiUnsafe.Free(task.TaskPtr.ToPointer());
-                        _tasks.RemoveAtSwapBack(i);
-                    }
-                }
-                catch
-                {
-                    NiUnsafe.Free(task.TaskPtr.ToPointer());
-                    _tasks.RemoveAtSwapBack(i);
-                    
-                    throw;
-                }
+                SchedulerInternalHelper.ProcessTasks(ref _tasks, time, time, realtime, deltaTime, deltaTime, deltaRealtime);
             }
+            
+            _lastTime = time;
+            _lastRealtime = realtime;
         }
 
         [MethodImpl(256)]
-        internal static ref UnsafeList<TaskWrapper> GetRunnerList()
+        public static ref UnsafeList<TaskWrapper> GetTaskList()
         {
             return ref _tasks;
         }

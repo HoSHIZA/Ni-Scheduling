@@ -1,4 +1,5 @@
-﻿using NiGames.Essentials;
+﻿using System.Runtime.CompilerServices;
+using NiGames.Essentials;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -16,7 +17,8 @@ namespace NiGames.Scheduling.Helpers
             unscaledTime = EditorApplication.timeSinceStartup;
             realtime = Time.realtimeSinceStartupAsDouble;
         }
-
+        
+        [MethodImpl(256)]
         public static void GetEditorTimeValues(out double time, out double realtime)
         {
             time = EditorApplication.timeSinceStartup;
@@ -38,6 +40,7 @@ namespace NiGames.Scheduling.Helpers
             realtime = Time.realtimeSinceStartupAsDouble;
         }
         
+        [MethodImpl(256)]
         public static void GetPlayerLoopTimeValues(PlayerLoopTiming timing, out double time, out double unscaledTime, out double realtime)
         {
             if (timing is PlayerLoopTiming.FixedUpdate)

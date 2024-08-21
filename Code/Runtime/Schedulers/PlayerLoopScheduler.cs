@@ -20,7 +20,7 @@ namespace NiGames.Scheduling
             TimeKind = timeKind;
         }
         
-        public uint GetRunnerId()
+        public int GetRunnerId()
         {
 #if UNITY_EDITOR
             if (!Application.isPlaying)
@@ -36,7 +36,7 @@ namespace NiGames.Scheduling
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
-                return ref EditorDispatcher.GetRunnerList();
+                return ref EditorDispatcher.GetTaskList();
             }
 #endif
             

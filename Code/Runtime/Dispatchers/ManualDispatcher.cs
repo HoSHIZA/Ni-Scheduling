@@ -9,11 +9,11 @@ namespace NiGames.Scheduling.Dispatchers
 {
     public static unsafe class ManualDispatcher
     {
-        public static double Time { get; set; }
-        
-        public static readonly uint RunnerId = SchedulerInternalHelper.GetNextRunnerId();
+        public static readonly int RunnerId = SchedulerInternalHelper.GetNextRunnerId();
         
         private static UnsafeList<TaskWrapper> _tasks = new(8, Allocator.Persistent); 
+        
+        public static double Time { get; set; }
         
         public static TaskWrapper Schedule<T>(ref T task)
             where T : unmanaged, IScheduledTask
@@ -35,9 +35,9 @@ namespace NiGames.Scheduling.Dispatchers
             realtime = Time;
         }
         
-        public static void Update(double deltaTime)
+        public static void Update(double delta)
         {
-            Time += Math.Max(0, deltaTime);
+            Time += Math.Max(0, delta);
             
             for (var i = 0; i < _tasks.Length; i++)
             {
@@ -45,18 +45,16 @@ namespace NiGames.Scheduling.Dispatchers
                 
                 try
                 {
-                    task.UpdateFunction(task.TaskPtr, Time, Time, Time);
+                    task.UpdateFunction(task.TaskPtr, Time, Time, Time, delta, delta, delta);
                     
                     if (task.IsCompletedFunction(task.TaskPtr))
                     {
-                        NiUnsafe.Free(task.TaskPtr.ToPointer());
-                        _tasks.RemoveAtSwapBack(i);
+                        Free(ref task, i);
                     }
                 }
                 catch
                 {
-                    NiUnsafe.Free(task.TaskPtr.ToPointer());
-                    _tasks.RemoveAtSwapBack(i);
+                    Free(ref task, i);
                     
                     throw;
                 }
@@ -64,9 +62,16 @@ namespace NiGames.Scheduling.Dispatchers
         }
         
         [MethodImpl(256)]
-        internal static ref UnsafeList<TaskWrapper> GetRunnerList()
+        public static ref UnsafeList<TaskWrapper> GetTaskList()
         {
             return ref _tasks;
+        }
+        
+        [MethodImpl(256)]
+        private static void Free(ref TaskWrapper task, in int index)
+        {
+            NiUnsafe.Free(task.TaskPtr.ToPointer());
+            _tasks.RemoveAtSwapBack(index);
         }
     }
 }

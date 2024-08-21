@@ -6,8 +6,8 @@ namespace NiGames.Scheduling
 {
     public readonly struct ManualScheduler : IScheduler
     {
-        public uint GetRunnerId() => ManualDispatcher.RunnerId;
-        public ref UnsafeList<TaskWrapper> GetTaskListRef() => ref ManualDispatcher.GetRunnerList();
+        public int GetRunnerId() => ManualDispatcher.RunnerId;
+        public ref UnsafeList<TaskWrapper> GetTaskListRef() => ref ManualDispatcher.GetTaskList();
         
         public TaskWrapper Schedule<T>(T task) where T : unmanaged, IScheduledTask
         {

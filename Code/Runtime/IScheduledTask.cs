@@ -6,7 +6,7 @@ namespace NiGames.Scheduling
     public interface IScheduledTask : IDisposable
     {
         bool IsCompleted { get; }
-        uint UpdaterId { get; }
+        int UpdaterId { get; }
         TimeKind TimeKind { get; }
         
         /// <summary>
@@ -19,6 +19,6 @@ namespace NiGames.Scheduling
         /// <summary>
         /// Method that is called every update.
         /// </summary>
-        public void Update(double time, double unscaledTime, double realtime);
+        public void Update(in double time, in double unscaledTime, in double realtime, in double delta);
     }
 }
