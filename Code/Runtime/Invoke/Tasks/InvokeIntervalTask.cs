@@ -31,6 +31,8 @@ namespace NiGames.Scheduling.Tasks.Invoke
             if (!_dataPtr.IsValid || !_dataPtr.Value.IsCallbackValid) IsCompleted = true;
             
             TimeKind = timeKind;
+            
+            _dataPtr.Value.InvokeOnStart();
         }
         
         public void Update(in double time, in double unscaledTime, in double realtime, in double delta)
@@ -48,6 +50,7 @@ namespace NiGames.Scheduling.Tasks.Invoke
                 
                 if (_delay < 0)
                 {
+                    _dataPtr.Value.InvokeOnStartDelayed();
                     _time -= _delay;
                     _elapsed -= _delay;
                 }

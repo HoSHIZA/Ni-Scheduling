@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading;
-using NiGames.Essentials;
+﻿using NiGames.Essentials;
 using NiGames.Essentials.Unsafe;
 
 namespace NiGames.Scheduling.Tasks.Invoke
@@ -27,6 +25,8 @@ namespace NiGames.Scheduling.Tasks.Invoke
             if (!_dataPtr.IsValid || !_dataPtr.Value.IsCallbackValid) IsCompleted = true;
             
             TimeKind = timeKind;
+            
+            _dataPtr.Value.InvokeOnStart();
         }
         
         public void Update(in double time, in double unscaledTime, in double realtime, in double delta)
@@ -41,6 +41,11 @@ namespace NiGames.Scheduling.Tasks.Invoke
             if (_delay > 0)
             {
                 _delay -= (float)delta;
+                
+                if (_delay < 0)
+                {
+                    _dataPtr.Value.InvokeOnStartDelayed();
+                }
                 
                 return;
             }
