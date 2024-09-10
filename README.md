@@ -94,7 +94,7 @@ var builder = NiInvoke.Create(() => { /* Logic */ })
     // On Prefix is used for callbacks.
     .OnStart(() => { /* Logic */ }) // Called during startup.
     .OnStartDelayed(() => { /* Logic */ }) // Called during the actual startup, taking into account the delay.
-    .OnComplete(() => { /* Logic */ }) // Called upon completion or cancelation.
+    .OnComplete(() => { /* Logic */ }) // Called upon completion or cancellation.
     // Other methods not related to creation.
     .Preserve(); // Does not invoke Dispose for the builder. Allows to reuse the builder.
 

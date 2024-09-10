@@ -3,10 +3,47 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using JetBrains.Annotations;
 using NiGames.Essentials;
+using NiGames.Essentials.Pooling.Buffer;
 using NiGames.Scheduling.Tasks.Invoke;
 
 namespace NiGames.Scheduling.Invoke
 {
+    internal sealed class NiInvokeBuilderBuffer : AbstractPooledBuffer<NiInvokeBuilderBuffer>
+    {
+        public IScheduler Scheduler;
+        
+        // Callback Data
+        public Action Callback;
+        public Action OnStart;
+        public Action OnStartDelayed;
+        public Action OnComplete;
+        public CancellationToken CancellationToken;
+        
+        // Data
+        public float Delay;
+        public float Duration;
+        public float Interval;
+        
+        public bool Preserve;
+        
+        protected override void Reset()
+        {
+            Scheduler = Scheduling.Scheduler.Default;
+            
+            Callback = default;
+            OnStart = default;
+            OnStartDelayed = default;
+            OnComplete = default;
+            CancellationToken = default;
+            
+            Delay = default;
+            Duration = default;
+            Interval = default;
+            
+            Preserve = false;
+        }
+    }
+    
     [PublicAPI]
     public struct NiInvokeBuilder
     {
@@ -161,7 +198,7 @@ namespace NiGames.Scheduling.Invoke
         public void InvokeOnce()
         {
             var data = new InvokeTaskData(Buffer.Callback, Buffer.OnComplete, Buffer.OnStart, Buffer.OnStartDelayed, Buffer.CancellationToken);
-            var task = new InvokeTask(data, Buffer.Duration);
+            var task = new InvokeTask(data, Buffer.Delay);
             
             Buffer.Scheduler.Schedule(task);
             
